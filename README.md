@@ -13,6 +13,10 @@
 ![Helm Chart](https://img.shields.io/badge/Chart-Helm-0F1689)
 ![Security](https://img.shields.io/badge/Security-Trivy-success)
 ---
+[![GHCR](https://img.shields.io/badge/Image-ghcr.io%2Fpymisc%2Fk8s--network--monitor-blue)](https://github.com/users/pymisc/packages/container/package/k8s-network-monitor)
+
+[![GHCR](https://img.shields.io/badge/GHCR-k8s--network--monitor-blue)](https://github.com/users/pymisc/packages/container/package/k8s-network-monitor)
+---
 
 ## Overview
 
