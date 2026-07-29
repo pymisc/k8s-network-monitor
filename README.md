@@ -7,8 +7,8 @@
 ![Grafana](https://img.shields.io/badge/Dashboard-Grafana-yellow)
 ![Helm](https://img.shields.io/badge/Deployment-Helm-0f1689)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Build](https://github.com/<your-org>/k8s-network-monitor/actions/workflows/build.yml/badge.svg)
-![Security Scan](https://github.com/<your-org>/k8s-network-monitor/actions/workflows/security.yml/badge.svg)
+![Build](https://github.com/pymisc/k8s-network-monitor/actions/workflows/build.yml/badge.svg)
+![Security Scan](https://github.com/pymisc/k8s-network-monitor/actions/workflows/security.yml/badge.svg)
 ---
 
 ## Overview
