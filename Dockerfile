@@ -1,5 +1,8 @@
 FROM python:3.13-slim
 
+# Links the GHCR package back to your source repository
+LABEL org.opencontainers.image.source="https://github.com/pymisc/k8s-network-monitor"
+
 WORKDIR /app
 
 COPY app/requirements.txt .
