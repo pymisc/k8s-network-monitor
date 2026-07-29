@@ -9,6 +9,9 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Build](https://github.com/pymisc/k8s-network-monitor/actions/workflows/build.yml/badge.svg)
 ![Security Scan](https://github.com/pymisc/k8s-network-monitor/actions/workflows/security.yml/badge.svg)
+![Docker Image](https://img.shields.io/badge/Image-GHCR-blue)
+![Helm Chart](https://img.shields.io/badge/Chart-Helm-0F1689)
+![Security](https://img.shields.io/badge/Security-Trivy-success)
 ---
 
 ## Overview
