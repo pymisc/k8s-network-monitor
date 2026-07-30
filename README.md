@@ -13,6 +13,10 @@
 ![Security](https://img.shields.io/badge/Security-Trivy-success)
 ![Security Scan](https://github.com/pymisc/k8s-network-monitor/actions/workflows/security.yml/badge.svg)
 
+
+![Tests](https://github.com/pymisc/k8s-network-monitor/actions/workflows/code-coverage.yml/badge.svg)
+
+![Code Coverage](https://codecov.io/gh/pymisc/k8s-network-monitor/branch/main/graph/badge.svg)
 ---
 
 ## Overview

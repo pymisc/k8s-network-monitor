@@ -1,0 +1,64 @@
+name: Code Coverage for Python Code
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - 'pytest.ini'
+
+  pull_request:
+    paths:
+      - '**.py'
+      - 'requirements.txt'
+      - 'pytest.ini'
+
+
+jobs:
+
+  test-and-coverage:
+
+    name: Run Tests and Coverage
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # Checkout repository source code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+
+      # Use the same Python version as Docker image
+      # Dockerfile currently uses python:3.13-slim
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+
+      # Install application dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+
+      # Execute tests and generate coverage report
+      - name: Run tests and measure coverage
+        run: |
+          pytest \
+            --cov=app \
+            --cov-report=term-missing \
+            --cov-report=xml
+
+
+      # Publish coverage report to Codecov
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

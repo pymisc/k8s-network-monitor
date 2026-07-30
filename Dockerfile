@@ -5,7 +5,7 @@ LABEL org.opencontainers.image.source="https://github.com/pymisc/k8s-network-mon
 
 WORKDIR /app
 
-COPY app/requirements.txt .
+COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
