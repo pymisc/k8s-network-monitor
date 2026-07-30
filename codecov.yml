@@ -4,7 +4,7 @@ coverage:
       default:
         target: auto
         threshold: 0%
-  
-  # Tell Codecov not to ignore our utility/misc folders!
-  ignore:
-    - "tests/**/*" # Only ignore actual test files
+
+# Ignore test files from coverage calculation
+ignore:
+  - "tests/**/*"
