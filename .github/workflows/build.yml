@@ -16,7 +16,22 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Build Docker image
+    - name: Read Python version
+      id: python
       run: |
-        docker build \
-          -t k8s-network-monitor:test .
+        echo "version=$(cat .python-version)" >> $GITHUB_OUTPUT
+
+    - name: Build Docker image
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: false
+        tags: |
+          k8s-network-monitor:test
+        build-args: |
+          PYTHON_VERSION=${{ steps.python.outputs.version }}       
+
+#    - name: Build Docker image
+#      run: |
+#        docker build \
+#          -t k8s-network-monitor:test .
