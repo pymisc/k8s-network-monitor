@@ -5,6 +5,7 @@ coverage:
         target: auto
         threshold: 0%
 
-# Ignore test files from coverage calculation
+# Ignore only test code.
+# Application code should always contribute to coverage metrics.
 ignore:
   - "tests/**/*"
