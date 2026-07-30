@@ -40,6 +40,12 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
             type=ref,event=tag
+          labels: |
+            org.opencontainers.image.title=k8s-network-monitor
+            org.opencontainers.image.description=Cloud-native network monitoring solution deployed on Kubernetes with Prometheus metrics and Grafana dashboards
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/README.md
+            org.opencontainers.image.licenses=MIT
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -47,3 +53,4 @@ jobs:
           context: .
           push: true
           tags:  ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
