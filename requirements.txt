@@ -1,2 +1,3 @@
 Flask
 prometheus-client
+speedtest-cli
