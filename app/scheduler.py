@@ -21,7 +21,10 @@ from .metrics import internet_download_mbps
 
 # Default to running every 10 minutes.
 MONITOR_INTERVAL_SECONDS = int(
-    os.getenv("MONITOR_INTERVAL_SECONDS", "600")
+    os.getenv(
+        "MONITOR_INTERVAL_SECONDS", 
+        "600"
+    )
 )
 
 
@@ -59,6 +62,10 @@ def start_scheduler():
     The thread is marked as daemon=True so it exits automatically when
     the Flask application stops.
     """
+    print(
+        f"Starting network monitor scheduler "
+        f"(interval={MONITOR_INTERVAL_SECONDS}s)"
+    )
 
     thread = threading.Thread(
         target=scheduler_loop,
