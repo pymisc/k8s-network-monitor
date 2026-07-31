@@ -9,6 +9,7 @@ This module exposes HTTP endpoints used for:
 
 from flask import Flask
 from .scheduler import start_scheduler
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 # Create Flask application instance.
 # This object is imported by:
@@ -43,6 +44,17 @@ def health():
     """
     return {"status": "ok"}
 
+@app.route("/metrics")
+def metrics():
+    """
+    Prometheus metrics endpoint.
+
+    Prometheus scrapes this endpoint periodically
+    to collect application metrics.
+    """
+    return generate_latest(), 200, {
+        "Content-Type": CONTENT_TYPE_LATEST
+    }
 
 # Allow the application to be started directly:
 #
