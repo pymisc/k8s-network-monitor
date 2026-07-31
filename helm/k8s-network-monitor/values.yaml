@@ -1,0 +1,13 @@
+image:
+  repository: ghcr.io/pymisc/k8s-network-monitor
+  tag: latest
+  pullPolicy: IfNotPresent
+
+
+service:
+  port: 8080
+
+monitor:
+  intervalSeconds: 600
+
+resources: {}
