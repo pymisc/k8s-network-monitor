@@ -8,7 +8,7 @@ This module exposes HTTP endpoints used for:
 """
 
 from flask import Flask
-
+from .scheduler import start_scheduler
 
 # Create Flask application instance.
 # This object is imported by:
