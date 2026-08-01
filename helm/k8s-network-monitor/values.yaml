@@ -1,3 +1,5 @@
+replicaCount: 1
+
 image:
   repository: ghcr.io/pymisc/k8s-network-monitor
   tag: latest
@@ -5,9 +7,15 @@ image:
 
 
 service:
+  type: ClusterIP
   port: 8080
 
-monitor:
-  intervalSeconds: 600
 
-resources: {}
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+  limits:
+    cpu: 500m
+    memory: 512Mi

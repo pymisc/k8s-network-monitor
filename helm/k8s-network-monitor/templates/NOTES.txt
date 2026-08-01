@@ -1,0 +1,37 @@
+Thank you for installing k8s-network-monitor!
+
+The application has been deployed successfully.
+
+Release:
+  {{ .Release.Name }}
+
+Namespace:
+  {{ .Release.Namespace }}
+
+
+Check pod status:
+
+  kubectl get pods -n {{ .Release.Namespace }}
+
+
+Check service:
+
+  kubectl get svc -n {{ .Release.Namespace }}
+
+
+To access metrics locally:
+
+  kubectl port-forward \
+    svc/{{ include "k8s-network-monitor.fullname" . }} \
+    8080:8080 \
+    -n {{ .Release.Namespace }}
+
+
+Metrics endpoint:
+
+  http://localhost:8080/metrics
+
+
+Health endpoint:
+
+  http://localhost:8080/health
