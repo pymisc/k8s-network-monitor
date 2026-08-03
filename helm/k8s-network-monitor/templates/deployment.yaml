@@ -12,34 +12,34 @@ spec:
   selector:
     matchLabels:
       {{- include "k8s-network-monitor.selectorLabels" . | nindent 6 }}
+    
 
   template:
 
     metadata:
       labels:
         {{- include "k8s-network-monitor.selectorLabels" . | nindent 8 }}
+      
+      annotations:
+        k8s.grafana.com/scrape: "true"
+        k8s.grafana.com/metrics.path: "/metrics"
+        k8s.grafana.com/metrics.portNumber: "8080"
 
     spec:
 
       containers:
 
         - name: network-monitor
-
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-
           ports:
             - containerPort: 8080
-
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-
           readinessProbe:
             httpGet:
               path: /health
               port: 8080
-
           livenessProbe:
             httpGet:
               path: /health
