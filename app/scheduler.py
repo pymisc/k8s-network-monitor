@@ -15,9 +15,11 @@ import os
 import threading
 import time
 
-from .bandwidth import get_download_speed
-from .metrics import internet_download_mbps
-
+from .bandwidth import get_network_metrics
+from .metrics import (
+    internet_download_mbps,
+    internet_ping_latency_ms,
+)
 
 # Default to running every 10 minutes.
 MONITOR_INTERVAL_SECONDS = int(
@@ -36,9 +38,10 @@ def collect_metrics():
     corresponding Prometheus metric.
     """
 
-    download_speed = get_download_speed()
+    download_speed, ping_latency = get_network_metrics()
 
     internet_download_mbps.set(download_speed)
+    internet_ping_latency_ms.set(ping_latency)
 
 
 def scheduler_loop():
