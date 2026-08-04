@@ -15,7 +15,8 @@ import os
 import threading
 import time
 
-from .bandwidth import get_network_metrics
+from .bandwidth import get_download_speed
+from .ping import get_ping_latency
 from .metrics import (
     internet_download_mbps,
     internet_ping_latency_ms,
@@ -38,7 +39,8 @@ def collect_metrics():
     corresponding Prometheus metric.
     """
 
-    download_speed, ping_latency = get_network_metrics()
+    download_speed = get_download_speed()
+    ping_latency = get_ping_latency()
 
     internet_download_mbps.set(download_speed)
     internet_ping_latency_ms.set(ping_latency)

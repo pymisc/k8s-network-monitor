@@ -1,47 +1,37 @@
 """
-Network measurement utilities.
+Bandwidth measurement utilities.
 
 This module is responsible for collecting
-internet performance measurements.
+internet bandwidth measurements.
 
 Current implementation:
 - Download bandwidth
-- Ping latency
 
 Future:
-- Upload speed
-- Jitter
-- Packet loss
+- Upload bandwidth
 """
-
 
 import speedtest
 
 
-def get_network_metrics():
+def get_download_speed():
     """
-    Measure current internet download speed and ping latency.
+    Measure current internet download speed.
 
     Returns:
-        tuple:
-            download_mbps (float)
-            ping_latency_ms (float)
+        float:
+            Download bandwidth in Mbps.
     """
-
 
     test = speedtest.Speedtest()
 
     test.get_best_server()
 
-    ping_latency_ms = test.results.ping
-
     test.download()
 
     download_bps = test.results.download
-    # Convert bits per second to megabits per second
+
+    # Convert bits per second to megabits per second.
     download_mbps = download_bps / 1_000_000
 
-    return (
-        round(download_mbps, 2), 
-        round(ping_latency_ms, 2),
-    )
+    return round(download_mbps, 2)
