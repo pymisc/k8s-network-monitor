@@ -3,7 +3,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/pymisc/k8s-network-monitor
   tag: latest
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 
 service:
