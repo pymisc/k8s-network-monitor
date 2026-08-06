@@ -39,11 +39,17 @@ def collect_metrics():
     corresponding Prometheus metric.
     """
 
-    download_speed = get_download_speed()
-    ping_latency = get_ping_latency()
+    try:
+        download_speed = get_download_speed()
+        internet_download_mbps.set(download_speed)
+    except Exception as exc:
+        print(f"Failed to collect download speed: {exc}")
 
-    internet_download_mbps.set(download_speed)
-    internet_ping_latency_ms.set(ping_latency)
+    try:
+        ping_latency = get_ping_latency()
+        internet_ping_latency_ms.set(ping_latency)
+    except Exception as exc:
+        print(f"Failed to collect ping latency: {exc}")
 
 
 def scheduler_loop():
@@ -54,8 +60,10 @@ def scheduler_loop():
     """
 
     while True:
-
-        collect_metrics()
+        try:
+            collect_metrics()
+        except Exception as exc:
+            print(f"Metric collection failed: {exc}")
 
         time.sleep(MONITOR_INTERVAL_SECONDS)
 
