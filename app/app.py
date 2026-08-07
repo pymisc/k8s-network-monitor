@@ -18,7 +18,6 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 # - Kubernetes container runtime
 app = Flask(__name__)
 
-
 # Start background metric collection scheduler.
 start_scheduler()
 
