@@ -166,6 +166,21 @@ jobs:
           echo "=== Search for JSON result ==="
           find . -name 'trivy-results.json' -ls
 
+      - name: Locate embedded SBOM with Trivy debug
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.70.0 \
+            image \
+            --debug \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            k8s-network-monitor:${{ github.sha }} \
+            > trivy-debug.log 2>&1 || true
+
+          grep -Ei 'SBOM|CycloneDX|SPDX|file_path' trivy-debug.log || true
+
+
       - name: Inspect Trivy result sources
         run: |
           python - <<'PY'
