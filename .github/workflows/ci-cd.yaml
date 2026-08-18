@@ -6,26 +6,31 @@ on:
       - main
     tags:
       - "v*"
+
   pull_request:
     branches:
       - main
 
+
 permissions:
   contents: read
 
+
 jobs:
+
   # ================================================================
   # JOB 1: Python tests and code coverage
   # ================================================================
   test-and-coverage:
     name: Tests & Coverage
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Read Python version from .python-version so local development,
-      # CI, and the Docker build use the same Python version.
+      # Keep local development, CI tests, and container builds
+      # on the same Python version.
       - name: Read Python version
         id: python
         run: |
@@ -55,20 +60,22 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+
   # ================================================================
   # JOB 2: Source / filesystem security scan
   #
   # Runs in parallel with tests because neither depends on the other.
   # ================================================================
   security-scan:
-    name: Security Scan
+    name: Source Security Scan
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Run Trivy filesystem vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           severity: CRITICAL,HIGH
@@ -77,18 +84,16 @@ jobs:
   # ================================================================
   # JOB 3: Docker build validation
   #
-  # Docker image is built ONLY after:
-  #   - tests pass
-  #   - security scan passes
-  #
-  # This creates the connected GitHub Actions dependency graph.
+  # Runs only after tests and source security checks pass.
   # ================================================================
   docker-build:
     name: Build Docker Image
     needs:
       - test-and-coverage
       - security-scan
+
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -104,19 +109,21 @@ jobs:
           context: .
           load: true
           push: false
-          tags: |
-            k8s-network-monitor:test
+          tags: k8s-network-monitor:test
           build-args: |
             PYTHON_VERSION=${{ steps.python.outputs.version }}
 
-            
+
   # ================================================================
-  # JOB 4: Docker image security scan (CVE scan)
+  # JOB 4: Container image vulnerability / CVE scan
+  #
+  # Acts as the security gate between image build and publication.
   # ================================================================
   container-security-scan:
     name: Container Image CVE Scan
     needs:
       - docker-build
+
     runs-on: ubuntu-latest
 
     steps:
@@ -128,7 +135,7 @@ jobs:
         run: |
           echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
 
-      - name: Build Docker image
+      - name: Build Docker image for security scan
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -137,97 +144,62 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ steps.python.outputs.version }}
 
+      # Useful sanity check showing exactly which Python runtime
+      # exists inside the image being scanned.
       - name: Verify container runtime
         run: |
           docker run --rm \
             k8s-network-monitor:${{ github.sha }} \
             python --version
 
-      - name: Run Trivy container image scan - JSON diagnostic
+      - name: Run Trivy container image scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: k8s-network-monitor:${{ github.sha }}
           scan-type: image
-          format: json
-          output: trivy-results.json
+          format: table
           severity: CRITICAL,HIGH
           vuln-type: os,library
           scanners: vuln
           exit-code: "1"
           ignore-unfixed: true
+
+          # pip contains a third-party CycloneDX SBOM under _vendor
+          # that reported stale package versions not present in the
+          # actual runtime environment. Skip that metadata directory
+          # while continuing to scan installed runtime packages.
           skip-dirs: /usr/local/lib/python3.13/site-packages/pip/_vendor
-
-      - name: Verify Trivy JSON file
-        run: |
-          echo "=== Working directory ==="
-          pwd
-
-          echo "=== Directory contents ==="
-          ls -lah
-
-          echo "=== Search for JSON result ==="
-          find . -name 'trivy-results.json' -ls
-
-      - name: Locate embedded SBOM with Trivy debug
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:0.70.0 \
-            image \
-            --debug \
-            --scanners vuln \
-            --severity HIGH,CRITICAL \
-            k8s-network-monitor:${{ github.sha }} \
-            > trivy-debug.log 2>&1 || true
-
-          grep -Ei 'SBOM|CycloneDX|SPDX|file_path' trivy-debug.log || true
-
-
-      - name: Inspect Trivy result sources
-        run: |
-          python - <<'PY'
-          import json
-
-          with open("trivy-results.json") as f:
-              data = json.load(f)
-
-          for result in data.get("Results", []):
-              print("=" * 70)
-              print("Target :", result.get("Target"))
-              print("Class  :", result.get("Class"))
-              print("Type   :", result.get("Type"))
-
-              for vuln in result.get("Vulnerabilities") or []:
-                  print(
-                      vuln.get("PkgName"),
-                      vuln.get("InstalledVersion"),
-                      vuln.get("VulnerabilityID"),
-                  )
-          PY
 
 
   # ================================================================
   # JOB 5: Publish production image
   #
-  # Only runs after the validated Docker build succeeds.
-  #
   # Pull Requests:
-  #   tests -> security -> build
-  #   NO publish
+  #   tests + source security
+  #           -> build
+  #           -> container CVE scan
+  #           -> NO publish
   #
   # main / version tag:
-  #   tests -> security -> build -> publish
+  #   tests + source security
+  #           -> build
+  #           -> container CVE scan
+  #           -> publish to GHCR
   # ================================================================
   publish-image:
     name: Publish Image to GHCR
     needs:
-    - container-security-scan
+      - container-security-scan
+
     # Never publish images from pull requests.
     if: github.event_name == 'push'
+
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       packages: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
