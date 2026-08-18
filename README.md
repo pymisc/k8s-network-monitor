@@ -3,7 +3,7 @@
 > Cloud-native network monitoring solution deployed on Kubernetes with Prometheus metrics, Grafana dashboards, and automated health checks.
 
 [![CI/CD Pipeline](https://github.com/pymisc/k8s-network-monitor/actions/workflows/ci-cd.yaml/badge.svg)](https://github.com/pymisc/k8s-network-monitor/actions/workflows/ci-cd.yaml)
-![Code Coverage](https://codecov.io/gh/pymisc/k8s-network-monitor/branch/main/graph/badge.svg)
+[![Code Coverage](https://codecov.io/gh/pymisc/k8s-network-monitor/branch/main/graph/badge.svg)](https://app.codecov.io/gh/pymisc/k8s-network-monitor)
 [![GHCR](https://img.shields.io/badge/GHCR-k8s--network--monitor-blue)](https://github.com/users/pymisc/packages/container/package/k8s-network-monitor)
 
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-native-blue)
