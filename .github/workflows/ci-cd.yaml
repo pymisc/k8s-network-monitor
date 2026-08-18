@@ -121,12 +121,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Read Python version
+        id: python
+        run: |
+          echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
+
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           load: true
           tags: k8s-network-monitor:${{ github.sha }}
+          build-args: |
+            PYTHON_VERSION=${{ steps.python.outputs.version }}
 
       - name: Run Trivy container image scan
         uses: aquasecurity/trivy-action@v0.36.0
