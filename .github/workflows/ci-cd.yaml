@@ -109,6 +109,7 @@ jobs:
           build-args: |
             PYTHON_VERSION=${{ steps.python.outputs.version }}
 
+            
   # ================================================================
   # JOB 4: Docker image security scan (CVE scan)
   # ================================================================
@@ -120,6 +121,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Inspecting Python packages in container
+        run: |
+          echo "=== Python version ==="
+          docker run --rm \
+            k8s-network-monitor:${{ github.sha }} \
+            python --version
+
+          echo "=== setuptools ==="
+          docker run --rm \
+            k8s-network-monitor:${{ github.sha }} \
+            python -m pip show setuptools
+
+          echo "=== msgpack ==="
+          docker run --rm \
+            k8s-network-monitor:${{ github.sha }} \
+            python -m pip show msgpack || true
+
+          echo "=== wheel ==="
+          docker run --rm \
+            k8s-network-monitor:${{ github.sha }} \
+            python -m pip show wheel
 
       - name: Read Python version
         id: python
