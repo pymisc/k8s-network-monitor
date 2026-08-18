@@ -1,0 +1,173 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  # ================================================================
+  # JOB 1: Python tests and code coverage
+  # ================================================================
+  test-and-coverage:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Read Python version from .python-version so local development,
+      # CI, and the Docker build use the same Python version.
+      - name: Read Python version
+        id: python
+        run: |
+          echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ steps.python.outputs.version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests and measure coverage
+        run: |
+          pytest \
+            --cov=app \
+            --cov-report=term-missing \
+            --cov-report=xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ================================================================
+  # JOB 2: Source / filesystem security scan
+  #
+  # Runs in parallel with tests because neither depends on the other.
+  # ================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          severity: CRITICAL,HIGH
+
+
+  # ================================================================
+  # JOB 3: Docker build validation
+  #
+  # Docker image is built ONLY after:
+  #   - tests pass
+  #   - security scan passes
+  #
+  # This creates the connected GitHub Actions dependency graph.
+  # ================================================================
+  docker-build:
+    name: Build Docker Image
+    needs:
+      - test-and-coverage
+      - security-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read Python version
+        id: python
+        run: |
+          echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: |
+            k8s-network-monitor:test
+          build-args: |
+            PYTHON_VERSION=${{ steps.python.outputs.version }}
+
+  # ================================================================
+  # JOB 4: Publish production image
+  #
+  # Only runs after the validated Docker build succeeds.
+  #
+  # Pull Requests:
+  #   tests -> security -> build
+  #   NO publish
+  #
+  # main / version tag:
+  #   tests -> security -> build -> publish
+  # ================================================================
+  publish-image:
+    name: Publish Image to GHCR
+    needs:
+      - docker-build
+    # Never publish images from pull requests.
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read Python version
+        id: python
+        run: |
+          echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+            type=ref,event=tag
+          labels: |
+            org.opencontainers.image.title=k8s-network-monitor
+            org.opencontainers.image.description=Cloud-native network monitoring solution deployed on Kubernetes with Prometheus metrics and Grafana dashboards
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/README.md
+            org.opencontainers.image.licenses=MIT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            PYTHON_VERSION=${{ steps.python.outputs.version }}
