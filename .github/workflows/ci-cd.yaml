@@ -102,6 +102,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          load: true
           push: false
           tags: |
             k8s-network-monitor:test
@@ -109,7 +110,38 @@ jobs:
             PYTHON_VERSION=${{ steps.python.outputs.version }}
 
   # ================================================================
-  # JOB 4: Publish production image
+  # JOB 4: Docker image security scan (CVE scan)
+  # ================================================================
+  container-security-scan:
+    name: Container Image CVE Scan
+    needs:
+      - docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: k8s-network-monitor:${{ github.sha }}
+
+      - name: Run Trivy container image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: k8s-network-monitor:${{ github.sha }}
+          scan-type: image
+          format: table
+          severity: CRITICAL,HIGH
+          vuln-type: os,library
+          exit-code: "1"
+          ignore-unfixed: true
+
+
+  # ================================================================
+  # JOB 5: Publish production image
   #
   # Only runs after the validated Docker build succeeds.
   #
@@ -123,7 +155,7 @@ jobs:
   publish-image:
     name: Publish Image to GHCR
     needs:
-      - docker-build
+    - container-security-scan
     # Never publish images from pull requests.
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
