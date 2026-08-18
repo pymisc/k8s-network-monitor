@@ -2,18 +2,17 @@
 
 > Cloud-native network monitoring solution deployed on Kubernetes with Prometheus metrics, Grafana dashboards, and automated health checks.
 
+[![CI/CD Pipeline](https://github.com/pymisc/k8s-network-monitor/actions/workflows/ci-cd.yaml/badge.svg)](https://github.com/pymisc/k8s-network-monitor/actions/workflows/ci-cd.yaml)
+![Code Coverage](https://codecov.io/gh/pymisc/k8s-network-monitor/branch/main/graph/badge.svg)
+[![GHCR](https://img.shields.io/badge/GHCR-k8s--network--monitor-blue)](https://github.com/users/pymisc/packages/container/package/k8s-network-monitor)
+
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-native-blue)
 ![Prometheus](https://img.shields.io/badge/Metrics-Prometheus-orange)
 ![Grafana](https://img.shields.io/badge/Dashboard-Grafana-yellow)
 ![Helm](https://img.shields.io/badge/Deployment-Helm-0f1689)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Publish Image](https://github.com/pymisc/k8s-network-monitor/actions/workflows/publish-image.yml/badge.svg)
-![Build](https://github.com/pymisc/k8s-network-monitor/actions/workflows/build.yml/badge.svg)
-[![GHCR](https://img.shields.io/badge/GHCR-k8s--network--monitor-blue)](https://github.com/users/pymisc/packages/container/package/k8s-network-monitor)
 ![Security](https://img.shields.io/badge/Security-Trivy-success)
-![Security Scan](https://github.com/pymisc/k8s-network-monitor/actions/workflows/security.yml/badge.svg)
-![Tests](https://github.com/pymisc/k8s-network-monitor/actions/workflows/code-coverage.yml/badge.svg)
-![Code Coverage](https://codecov.io/gh/pymisc/k8s-network-monitor/branch/main/graph/badge.svg)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 ---
 
 ## Overview
