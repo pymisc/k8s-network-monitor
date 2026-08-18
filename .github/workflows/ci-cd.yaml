@@ -158,6 +158,26 @@ jobs:
             k8s-network-monitor:${{ github.sha }} \
             python -m pip show wheel
 
+      - name: Inspecting image metadata
+        run: |
+          docker inspect \
+            k8s-network-monitor:${{ github.sha }}
+            
+      - name: Inspecting SBOM files in container image
+        run: |
+          docker run --rm \
+            k8s-network-monitor:${{ github.sha }} \
+            sh -c '
+              find / \
+                -type f \
+                \( \
+                  -iname "*sbom*" \
+                  -o -iname "*.spdx*" \
+                  -o -iname "*cyclonedx*" \
+                \) \
+                2>/dev/null | head -100
+            '      
+
       - name: Run Trivy container image scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
