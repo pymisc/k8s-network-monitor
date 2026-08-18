@@ -1,10 +1,15 @@
 # Python version is controlled by .python-version
-ARG PYTHON_VERSION=3.11
+ARG PYTHON_VERSION=3.13
 
 FROM python:${PYTHON_VERSION}-slim
 
 # GHCR package back to the source repository
 LABEL org.opencontainers.image.source="https://github.com/pymisc/k8s-network-monitor"
+
+RUN python -m pip install --no-cache-dir --upgrade \
+    pip \
+    "setuptools>=82.0.0" \
+    "wheel>=0.46.2"
 
 WORKDIR /app
 
