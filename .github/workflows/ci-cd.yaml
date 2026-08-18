@@ -79,80 +79,102 @@ jobs:
         with:
           scan-type: fs
           severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
 
 
   # ================================================================
-  # JOB 3: Docker build validation
+  # JOB 3: Build -> Scan -> Publish
   #
-  # Runs only after tests and source security checks pass.
+  # The Docker image is built ONCE.
+  #
+  # Flow:
+  #   tests + source security
+  #       -> build local image
+  #       -> scan exact image with Trivy
+  #       -> publish exact same image if scan passes
+  #
+  # Pull Requests:
+  #   build + scan only
+  #
+  # main / version tags:
+  #   build + scan + publish
   # ================================================================
-  docker-build:
-    name: Build Docker Image
+  image-pipeline:
+    name: Build → Scan → Publish
+
     needs:
       - test-and-coverage
       - security-scan
 
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      packages: write
+
     steps:
+
       - name: Checkout repository
         uses: actions/checkout@v4
+
 
       - name: Read Python version
         id: python
         run: |
           echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
 
+
+      # Generate final GHCR tags and OCI labels before the image is built.
+      # The labels therefore become part of the exact image that Trivy scans.
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+            type=ref,event=tag
+
+          labels: |
+            org.opencontainers.image.title=k8s-network-monitor
+            org.opencontainers.image.description=Cloud-native network monitoring solution deployed on Kubernetes with Prometheus metrics and Grafana dashboards
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/README.md
+            org.opencontainers.image.licenses=MIT
+
+
+      # Build ONCE and load into the runner's local Docker daemon.
+      #
+      # We use one predictable local tag for:
+      #   - runtime verification
+      #   - Trivy scan
+      #   - subsequent GHCR tagging/publishing
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           load: true
           push: false
-          tags: k8s-network-monitor:test
-          build-args: |
-            PYTHON_VERSION=${{ steps.python.outputs.version }}
-
-
-  # ================================================================
-  # JOB 4: Container image vulnerability / CVE scan
-  #
-  # Acts as the security gate between image build and publication.
-  # ================================================================
-  container-security-scan:
-    name: Container Image CVE Scan
-    needs:
-      - docker-build
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Read Python version
-        id: python
-        run: |
-          echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
-
-      - name: Build Docker image for security scan
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          load: true
           tags: k8s-network-monitor:${{ github.sha }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             PYTHON_VERSION=${{ steps.python.outputs.version }}
 
-      # Useful sanity check showing exactly which Python runtime
-      # exists inside the image being scanned.
+
       - name: Verify container runtime
         run: |
           docker run --rm \
             k8s-network-monitor:${{ github.sha }} \
             python --version
 
-      - name: Run Trivy container image scan
+
+      # Security gate.
+      # If HIGH/CRITICAL CVEs are found, exit-code 1 stops this job,
+      # therefore the following publish steps never execute.
+      - name: Run Trivy container image CVE scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: k8s-network-monitor:${{ github.sha }}
@@ -164,80 +186,52 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
 
-          # pip contains a third-party CycloneDX SBOM under _vendor
-          # that reported stale package versions not present in the
-          # actual runtime environment. Skip that metadata directory
-          # while continuing to scan installed runtime packages.
+          # pip contains a third-party CycloneDX SBOM that reported
+          # stale package versions not present in the runtime image.
           skip-dirs: /usr/local/lib/python3.13/site-packages/pip/_vendor
 
 
-  # ================================================================
-  # JOB 5: Publish production image
-  #
-  # Pull Requests:
-  #   tests + source security
-  #           -> build
-  #           -> container CVE scan
-  #           -> NO publish
-  #
-  # main / version tag:
-  #   tests + source security
-  #           -> build
-  #           -> container CVE scan
-  #           -> publish to GHCR
-  # ================================================================
-  publish-image:
-    name: Publish Image to GHCR
-    needs:
-      - container-security-scan
-
-    # Never publish images from pull requests.
-    if: github.event_name == 'push'
-
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Read Python version
-        id: python
-        run: |
-          echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
-
+      # Everything below here runs ONLY if Trivy passed
+      # and this workflow was triggered by a push.
       - name: Login to GitHub Container Registry
+        if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata for Docker image
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha
-            type=ref,event=tag
-          labels: |
-            org.opencontainers.image.title=k8s-network-monitor
-            org.opencontainers.image.description=Cloud-native network monitoring solution deployed on Kubernetes with Prometheus metrics and Grafana dashboards
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.documentation=https://github.com/${{ github.repository }}/blob/main/README.md
-            org.opencontainers.image.licenses=MIT
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            PYTHON_VERSION=${{ steps.python.outputs.version }}
+      # Apply the tags generated by docker/metadata-action to the
+      # SAME LOCAL IMAGE that was just scanned.
+      - name: Tag validated image
+        if: github.event_name == 'push'
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+
+            echo "Tagging:"
+            echo "  k8s-network-monitor:${GITHUB_SHA}"
+            echo "  -> $tag"
+
+            docker tag \
+              "k8s-network-monitor:${GITHUB_SHA}" \
+              "$tag"
+          done <<< "$IMAGE_TAGS"
+
+
+      # Push the already-built and already-scanned image.
+      # NO Docker build happens here.
+      - name: Publish validated image to GHCR
+        if: github.event_name == 'push'
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+
+            echo "Publishing $tag"
+            docker push "$tag"
+          done <<< "$IMAGE_TAGS"
