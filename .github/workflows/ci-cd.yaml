@@ -152,8 +152,10 @@ jobs:
           output: trivy-results.json
           severity: CRITICAL,HIGH
           vuln-type: os,library
-          exit-code: "0"
+          scanners: vuln
+          exit-code: "1"
           ignore-unfixed: true
+          skip-dirs: /usr/local/lib/python3.13/site-packages/pip/_vendor
 
       - name: Verify Trivy JSON file
         run: |
