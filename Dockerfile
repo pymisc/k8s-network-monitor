@@ -12,11 +12,15 @@ RUN python -m pip install --no-cache-dir --upgrade \
     "wheel>=0.46.2"
 
 WORKDIR /app
-
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the shared project icon into Flask's static directory.
+# The source remains under miscellaneous/ so the same icon can
+# also be reused by Helm and other project components.
+COPY miscellaneous/k8s-network-monitor-icon.png \
+     ./app/static/k8s-network-monitor-icon.png
 
+RUN pip install --no-cache-dir -r requirements.txt
 RUN apt-get update && \
     apt-get upgrade -y && \
     apt-get install -y --no-install-recommends iputils-ping && \
