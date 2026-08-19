@@ -1,6 +1,6 @@
 # k8s-network-monitor
 
-> Cloud-native network monitoring solution deployed on Kubernetes with Prometheus metrics, Grafana dashboards, and automated health checks.
+> A lightweight Kubernetes-native application for monitoring internet performance and exposing network measurements as Prometheus metrics.
 
 [![CI/CD Pipeline](https://github.com/pymisc/k8s-network-monitor/actions/workflows/ci-cd.yaml/badge.svg)](https://github.com/pymisc/k8s-network-monitor/actions/workflows/ci-cd.yaml)
 [![Code Coverage](https://codecov.io/gh/pymisc/k8s-network-monitor/branch/main/graph/badge.svg)](https://app.codecov.io/gh/pymisc/k8s-network-monitor)
@@ -17,276 +17,396 @@
 
 ## Overview
 
-**k8s-network-monitor** is a lightweight Kubernetes-native observability agent designed to monitor network connectivity, bandwidth, latency, and overall internet health.
+**k8s-network-monitor** is a small cloud-native network monitoring application designed to run inside Kubernetes.
 
-The solution runs as a single container deployment inside Kubernetes and continuously collects network performance metrics that can be consumed by **Prometheus** and visualized through **Grafana dashboards**.
+The application periodically measures internet performance and exposes the results through a Prometheus-compatible `/metrics` endpoint.
 
-The initial implementation focuses on monitoring internet connection quality (such as ISP bandwidth and latency), while the architecture is designed to support additional network health probes in the future.
+The current implementation intentionally focuses on two core measurements:
+
+- Internet download bandwidth
+- Internet ping latency
+
+The project also demonstrates practical platform-engineering concepts including:
+
+- Python application development
+- Containerization with Docker
+- Kubernetes deployments
+- Helm packaging
+- Prometheus metrics
+- Grafana visualization
+- CI/CD with GitHub Actions
+- Python linting
+- Automated testing and code coverage
+- Source and container vulnerability scanning
+- Container publishing to GHCR
 
 ---
 
-# Architecture
+## Architecture
 
 ```text
-                         Kubernetes Cluster
-
-                              |
-                              |
-                    +---------------------+
-                    | k8s-network-monitor |
-                    |---------------------|
-                    | Network Probe       |
-                    | Metrics Exporter    |
-                    | Health Checks       |
-                    +----------+----------+
-                               |
-                               |
-                         /metrics endpoint
-                               |
-                               |
-                  +------------+-------------+
-                  |                          |
-             Prometheus                 Grafana Alloy
-                  |                          |
-                  +------------+-------------+
-                               |
-                               |
-                         Grafana Dashboard
+                    Internet
+                       │
+                       │ Network Test
+                       ▼
+             ┌─────────────────────┐
+             │ k8s-network-monitor │
+             │                     │
+             │   Python App        │
+             │   Network Probe     │
+             │   Metrics Exporter  │
+             └──────────┬──────────┘
+                        │
+                        │ /metrics :8080
+                        ▼
+                 Prometheus Metrics
+                        │
+                        ▼
+                Grafana / Grafana Cloud
+                        │
+                        ▼
+                   Dashboard
 ```
 
----
-
-# Features
-
-## Current Features
-
-✅ Kubernetes-native deployment  
-✅ Lightweight single-container architecture  
-✅ Automated network health checks  
-✅ Internet bandwidth monitoring  
-✅ Prometheus-compatible metrics endpoint  
-✅ Grafana dashboard visualization  
-✅ Configurable monitoring interval  
-✅ Helm-based deployment  
+The application runs as a containerized workload inside Kubernetes and exposes network measurements in Prometheus format.
 
 ---
 
-# Metrics
+## Metrics
 
-The application exposes Prometheus metrics including:
+The current version exposes two application-specific network performance metrics.
 
-| Metric | Description |
-|---|---|
-| `internet_download_mbps` | Current download bandwidth |
-| `internet_upload_mbps` | Current upload bandwidth |
-| `internet_ping_ms` | Network latency |
-| `internet_jitter_ms` | Latency variation |
-| `internet_packet_loss_percent` | Packet loss percentage |
-| `internet_last_success_timestamp` | Last successful health check |
-| `internet_test_duration_seconds` | Monitoring test duration |
+| Metric | Description | Unit |
+|---|---|---|
+| `internet_download_mbps` | Current internet download bandwidth | Mbps |
+| `internet_ping_latency_ms` | Current internet ping latency | milliseconds |
+
+Example output from the running application's `/metrics` endpoint:
+
+```text
+# HELP internet_download_mbps Current internet download bandwidth in Mbps
+# TYPE internet_download_mbps gauge
+internet_download_mbps 20.46
+
+# HELP internet_ping_latency_ms Current internet ping latency in milliseconds
+# TYPE internet_ping_latency_ms gauge
+internet_ping_latency_ms 21.0
+```
+
+The `/metrics` endpoint also includes standard Python runtime and process metrics provided automatically by the Prometheus Python client.
+
+The application-specific monitoring scope is intentionally small for now. Additional network observability metrics may be introduced as the project evolves.
+
+---
+
+## Application Endpoints
+
+The application exposes HTTP endpoints on port `8080`.
+
+### `/`
+
+Basic application endpoint used to confirm that the service is reachable.
+
+### `/health`
+
+Health-check endpoint used to verify that the application is running.
+
+### `/metrics`
+
+Prometheus-compatible metrics endpoint.
 
 Example:
 
-```text
-# HELP internet_download_mbps Download bandwidth in Mbps
-# TYPE internet_download_mbps gauge
-
-internet_download_mbps 932.15
-
-
-# HELP internet_ping_ms Network latency
-# TYPE internet_ping_ms gauge
-
-internet_ping_ms 12.4
+```bash
+curl http://localhost:8080/metrics
 ```
 
 ---
 
-# Grafana Dashboard
+## Container Image
 
-The project provides Grafana dashboards for:
-
-## Bandwidth Monitoring
-
-- Download speed trend
-- Upload speed trend
-- Bandwidth comparison
-
-## Network Health
-
-- Latency over time
-- Jitter analysis
-- Packet loss monitoring
-
-## Availability
-
-- Successful health checks
-- Failed health checks
-- Last successful measurement timestamp
-
-Dashboard layout:
+Container images are published to GitHub Container Registry:
 
 ```text
-+------------------------------------------------+
-| Download Speed       | Upload Speed             |
-+------------------------------------------------+
-| Latency              | Packet Loss              |
-+------------------------------------------------+
-| Bandwidth History                               |
-+------------------------------------------------+
-| Network Availability                            |
-+------------------------------------------------+
+ghcr.io/pymisc/k8s-network-monitor
 ```
 
----
+Images are published only after the CI/CD pipeline successfully completes the required quality and security gates.
 
-# Deployment
-
-## Prerequisites
-
-- Kubernetes cluster
-- Helm 3.x
-- Prometheus or Grafana Cloud Metrics
-- Grafana Dashboard
-
----
-
-## Install Using Helm
+Pull the latest image:
 
 ```bash
-helm install network-monitor \
+docker pull ghcr.io/pymisc/k8s-network-monitor:latest
+```
+
+---
+
+## Kubernetes Deployment
+
+The application is packaged as a Helm chart under:
+
+```text
+helm/k8s-network-monitor/
+```
+
+### Prerequisites
+
+The deployment requires:
+
+- Kubernetes cluster
+- `kubectl`
+- Helm 3.x
+- Prometheus-compatible metrics backend for metrics collection
+- Grafana or Grafana Cloud for visualization
+
+---
+
+## Deploy Using the Helper Script
+
+A deployment helper script is included with the repository:
+
+```text
+scripts/deploy_app.sh
+```
+
+The script is designed to be executed **from the repository root**.
+
+```bash
+git clone https://github.com/pymisc/k8s-network-monitor.git
+
+cd k8s-network-monitor
+
+./scripts/deploy_app.sh
+```
+
+The deployment script:
+
+1. Installs or upgrades the Helm release.
+2. Waits for the Kubernetes Deployment rollout to complete.
+3. Displays Deployment status.
+4. Displays Pod and Service status.
+
+This provides a simple and repeatable way to deploy or upgrade the application.
+
+---
+
+## Deploy Directly with Helm
+
+The application can also be deployed directly with Helm without using the helper script.
+
+```bash
+helm upgrade --install network-monitor \
   ./helm/k8s-network-monitor \
   --namespace monitoring \
   --create-namespace
 ```
 
----
-
-## Verify Deployment
+Verify the deployment:
 
 ```bash
+kubectl get deployments -n monitoring
 kubectl get pods -n monitoring
+kubectl get services -n monitoring
 ```
 
-Expected:
+Check the rollout:
 
-```text
-NAME                                  READY   STATUS
-k8s-network-monitor                   1/1     Running
-```
-
----
-
-# Configuration
-
-Configuration is controlled through Helm values.
-
-Example:
-
-```yaml
-monitor:
-  intervalSeconds: 600
-
-metrics:
-  port: 8080
-
-logging:
-  level: INFO
-```
-
-Default monitoring interval:
-
-```text
-10 minutes
+```bash
+kubectl rollout status \
+  deployment/network-monitor-k8s-network-monitor \
+  -n monitoring
 ```
 
 ---
 
-# Prometheus Integration
+## Verify the Metrics Endpoint
 
-The application exposes:
+The application's Prometheus metrics can be verified directly from a Kubernetes deployment using port forwarding.
 
-```text
-http://<pod-ip>:8080/metrics
+First, identify the Service:
+
+```bash
+kubectl get svc -n monitoring
 ```
 
-Example scrape configuration:
+Forward local port `8080` to the application Service:
 
-```yaml
-scrape_configs:
-
-- job_name: network-monitor
-
-  static_configs:
-    - targets:
-      - network-monitor:8080
+```bash
+kubectl port-forward \
+  -n monitoring \
+  svc/network-monitor-k8s-network-monitor \
+  8080:8080
 ```
 
-For Kubernetes environments, a `ServiceMonitor` resource can be used with Prometheus Operator.
+Keep the port-forward command running and open another terminal.
 
----
+Query all metrics:
 
-# Grafana Alerts
-
-Example alert rules:
-
-## Low Download Bandwidth
-
-```text
-internet_download_mbps < 500
+```bash
+curl -s http://localhost:8080/metrics
 ```
 
----
+To display only the application-specific metrics:
 
-## High Latency
-
-```text
-internet_ping_ms > 50
+```bash
+curl -s http://localhost:8080/metrics \
+  | grep -E '(^# HELP internet_|^# TYPE internet_|^internet_)'
 ```
 
----
-
-## Packet Loss
+Expected application-specific metrics:
 
 ```text
-internet_packet_loss_percent > 2
+internet_download_mbps
+internet_ping_latency_ms
 ```
 
 ---
 
-## Monitoring Failure
+## Prometheus Integration
+
+The application exposes Prometheus-compatible metrics through:
 
 ```text
-time() - internet_last_success_timestamp > 1800
+/metrics
 ```
+
+The two application-specific metrics are:
+
+```text
+internet_download_mbps
+internet_ping_latency_ms
+```
+
+A Prometheus-compatible monitoring system can scrape this endpoint and store the measurements as time-series data.
+
+The collected data can then be queried and visualized using Grafana.
 
 ---
 
-# Technology Stack
+## Grafana Dashboard
+
+Grafana can be used to visualize the network measurements over time.
+
+### Download Bandwidth
+
+PromQL:
+
+```promql
+internet_download_mbps
+```
+
+This metric can be used to visualize changes in measured internet download bandwidth.
+
+### Ping Latency
+
+PromQL:
+
+```promql
+internet_ping_latency_ms
+```
+
+This metric can be used to visualize changes in internet latency and identify periods of degraded network responsiveness.
+
+> **Coming soon**
+>
+> Helm chart support for deploying/configuring the Grafana dashboard will be added in an upcoming update.
+>
+> This will make the dashboard deployment more repeatable and allow the monitoring visualization to be managed alongside the application.
+
+---
+
+## CI/CD Pipeline
+
+The repository uses GitHub Actions to implement a gated CI/CD pipeline.
+
+```text
+                         Code Push / Pull Request
+                                  │
+                                  ▼
+                            Python Lint
+                                  │
+                         ┌────────┴────────┐
+                         ▼                 ▼
+                Tests & Coverage    Source Security
+                         │                 │
+                         └────────┬────────┘
+                                  ▼
+                            Docker Build
+                                  │
+                                  ▼
+                       Container CVE Scan
+                                  │
+                                  ▼
+                          Publish to GHCR
+```
+
+The pipeline follows a **fail-fast** approach.
+
+A failure in an earlier quality or security gate prevents unnecessary downstream build or publishing operations from proceeding.
+
+### Pipeline Gates
+
+| Gate | Purpose |
+|---|---|
+| Python Lint | Detect Python code errors early |
+| Tests & Coverage | Validate application behavior and measure code coverage |
+| Source Security | Scan source/filesystem content for security vulnerabilities |
+| Docker Build | Build the deployable container image |
+| Container CVE Scan | Scan the built container for HIGH/CRITICAL vulnerabilities |
+| Publish | Publish the validated container image to GHCR |
+
+The container pipeline is optimized so that the image used by later stages does not need to be unnecessarily rebuilt multiple times.
+
+---
+
+## Security
+
+Security validation is integrated directly into the CI/CD workflow.
+
+The project includes:
+
+- Python linting
+- Automated unit testing
+- Code coverage reporting
+- Trivy source/filesystem scanning
+- Trivy container-image vulnerability scanning
+- HIGH/CRITICAL CVE gating before image publication
+- Minimal Python container base image
+- Dependency and base-image updates through container rebuilds
+
+The production container image must pass the configured pipeline gates before publication to GHCR.
+
+---
+
+## Technology Stack
 
 | Component | Technology |
-|-|-|
-| Runtime | Python |
+|---|---|
+| Application | Python |
 | Container | Docker |
 | Orchestration | Kubernetes |
-| Deployment | Helm |
+| Packaging / Deployment | Helm |
 | Metrics | Prometheus |
-| Visualization | Grafana |
-| Observability | Grafana Alloy / Prometheus |
+| Visualization | Grafana / Grafana Cloud |
 | CI/CD | GitHub Actions |
+| Testing | Pytest |
+| Code Coverage | Codecov |
+| Linting | Pylint |
+| Security Scanning | Trivy |
+| Container Registry | GitHub Container Registry (GHCR) |
 
 ---
 
-# Project Structure
+## Project Structure
 
 ```text
 k8s-network-monitor/
-
-├── app/
-│   └── monitor.py
 │
-├── Dockerfile
-├── requirements.txt
+├── .github/
+│   └── workflows/
+│       └── ci-cd.yaml
+│
+├── app/
 │
 ├── helm/
 │   └── k8s-network-monitor/
@@ -294,97 +414,94 @@ k8s-network-monitor/
 │       ├── values.yaml
 │       └── templates/
 │
-├── dashboards/
-│   └── network-monitor-dashboard.json
-│
-├── docs/
+├── scripts/
+│   └── deploy_app.sh
 │
 ├── tests/
 │
+├── Dockerfile
+├── requirements.txt
+├── pytest.ini
+├── codecov.yml
+├── .python-version
 ├── README.md
 └── LICENSE
 ```
 
 ---
 
-# Roadmap
+## Roadmap
 
-## Phase 1 - Core Monitoring
+### Current
 
-- [x] Project initialization
-- [ ] Internet bandwidth measurement
-- [ ] Prometheus metrics exporter
-- [ ] Grafana dashboard
-- [ ] Helm deployment
+- [x] Python network monitoring application
+- [x] Internet download bandwidth measurement
+- [x] Internet ping latency measurement
+- [x] Prometheus `/metrics` endpoint
+- [x] Docker container
+- [x] Kubernetes deployment
+- [x] Helm application chart
+- [x] Deployment helper script
+- [x] Python linting
+- [x] Automated testing
+- [x] Code coverage reporting
+- [x] Source vulnerability scanning
+- [x] Container CVE scanning
+- [x] GHCR container publishing
+- [x] Gated CI/CD pipeline
+- [x] Grafana visualization
 
----
+### Next
 
-## Phase 2 - Network Observability
-
-Planned probes:
-
-- DNS latency monitoring
-- HTTP endpoint availability
-- ICMP latency checks
-- Packet loss monitoring
-- Public IP change detection
-- SSL certificate monitoring
-
----
-
-## Phase 3 - Enterprise Features
-
-Future ideas:
-
-- Multi-target monitoring
-- Alert integrations
-- Slack / Email notifications
-- Historical reports
-- Multi-architecture container images
-- Kubernetes Operator support
+- [ ] Grafana dashboard Helm integration
+- [ ] Improved dashboard deployment automation
+- [ ] Additional network observability metrics
+- [ ] Additional health probes
+- [ ] Alerting
+- [ ] GitOps deployment with Argo CD
 
 ---
 
-# Security Considerations
+## Project Goals
 
-The container follows Kubernetes security best practices:
+This project is intentionally designed as both a useful network-monitoring application and a hands-on platform-engineering project.
 
-- Runs as non-root user
-- Minimal container image
-- Read-only filesystem where possible
-- No unnecessary Kubernetes permissions
-- Resource limits configured
-- Vulnerability scanning in CI/CD
+It demonstrates the lifecycle of a small cloud-native service:
+
+```text
+Develop
+   │
+   ▼
+Lint
+   │
+   ▼
+Test
+   │
+   ▼
+Security Scan
+   │
+   ▼
+Build Container
+   │
+   ▼
+Scan Container
+   │
+   ▼
+Publish
+   │
+   ▼
+Deploy with Helm
+   │
+   ▼
+Observe with Prometheus + Grafana
+```
+
+The emphasis is not only on writing the application, but also on building a **repeatable, secure, observable delivery process around it**.
 
 ---
 
-# Contributing
-
-Contributions are welcome.
-
-Please open an issue to discuss:
-
-- New monitoring probes
-- Dashboard improvements
-- Performance enhancements
-- Feature requests
-
----
-
-# License
+## License
 
 This project is licensed under the MIT License.
 
-See [LICENSE](LICENSE) for details.
-
----
-
-# Author
-
-Built as a Kubernetes observability learning project demonstrating:
-
-- Kubernetes deployments
-- Prometheus metrics
-- Grafana dashboards
-- Cloud-native monitoring patterns
-- Platform engineering practices
+See `LICENSE` for details.
