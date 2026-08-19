@@ -257,30 +257,28 @@ jobs:
           done <<< "$IMAGE_TAGS"
 
 
-      # Push the already-built and already-scanned image.
-      # NO Docker build happens here.
-      - name: Publish validated image to GHCR
-        if: github.event_name == 'push'
-        env:
-          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+  # ================================================================
+  # FINAL JOB: Pipeline summary
+  #
+  # Runs after all pipeline gates have completed.
+  # ================================================================
+  pipeline-summary:
+    name: Pipeline Summary
+    needs:
+      - python-lint
+      - test-and-coverage
+      - security-scan
+      - image-pipeline
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate pipeline summary
         run: |
-          while IFS= read -r tag; do
-            [ -z "$tag" ] && continue
-
-            echo "Publishing $tag"
-            docker push "$tag"
-          done <<< "$IMAGE_TAGS"
-
-      - name: Pipeline Gate Summary
-        if: always()
-        run: |
-          echo "## 🚦 CI/CD Gate Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 🚦 CI/CD Pipeline Gate Summary" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Gate | Purpose |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Gate | Result |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ✅ Python Lint | Python quality gate |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ✅ Tests & Coverage | Functional validation |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ✅ Source Security | Repository vulnerability scan |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ✅ Docker Build | Build deployable artifact |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ✅ Container CVE Scan | Runtime image security gate |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| ✅ Publish GHCR | Release validated artifact |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 🐍 Python Lint | ${{ needs.python-lint.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 🧪 Tests & Coverage | ${{ needs.test-and-coverage.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 🔐 Source Security | ${{ needs.security-scan.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 🐳 Build → CVE Scan → Publish | ${{ needs.image-pipeline.result }} |" >> "$GITHUB_STEP_SUMMARY"
