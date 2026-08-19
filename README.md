@@ -15,6 +15,33 @@
 
 ---
 
+## Overview
+
+**k8s-network-monitor** is a small cloud-native network monitoring application designed to run inside Kubernetes.
+
+The application periodically measures internet performance and exposes the results through a Prometheus-compatible `/metrics` endpoint.
+
+The current implementation intentionally focuses on two core measurements:
+
+- Internet download bandwidth
+- Internet ping latency
+
+The project also demonstrates practical platform-engineering concepts including:
+
+- Python application development
+- Containerization with Docker
+- Kubernetes deployments
+- Helm packaging
+- Prometheus metrics
+- Grafana visualization
+- CI/CD with GitHub Actions
+- Python linting
+- Automated testing and code coverage
+- Source and container vulnerability scanning
+- Container publishing to GHCR
+
+---
+
 ## Application Preview
 
 The application provides a lightweight status page showing the latest
@@ -47,31 +74,6 @@ k8s-network-monitor
               ▼
             Grafana
 ```
-
-## Overview
-
-**k8s-network-monitor** is a small cloud-native network monitoring application designed to run inside Kubernetes.
-
-The application periodically measures internet performance and exposes the results through a Prometheus-compatible `/metrics` endpoint.
-
-The current implementation intentionally focuses on two core measurements:
-
-- Internet download bandwidth
-- Internet ping latency
-
-The project also demonstrates practical platform-engineering concepts including:
-
-- Python application development
-- Containerization with Docker
-- Kubernetes deployments
-- Helm packaging
-- Prometheus metrics
-- Grafana visualization
-- CI/CD with GitHub Actions
-- Python linting
-- Automated testing and code coverage
-- Source and container vulnerability scanning
-- Container publishing to GHCR
 
 ---
 
