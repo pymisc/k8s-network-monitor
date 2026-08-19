@@ -257,6 +257,22 @@ jobs:
           done <<< "$IMAGE_TAGS"
 
 
+      # Push the exact image that was built and security-scanned.
+      # No additional Docker build is performed here.
+      - name: Publish validated image to GHCR
+        if: github.event_name == 'push'
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+
+            echo "Publishing validated image:"
+            echo "  $tag"
+
+            docker push "$tag"
+          done <<< "$IMAGE_TAGS"
+
   # ================================================================
   # FINAL JOB: Pipeline summary
   #
