@@ -41,14 +41,27 @@ def client():
 # ---------------------------------------------------------------------------
 # Test: Root Endpoint
 #
-# Verify that the root endpoint (/) responds successfully and returns the
-# expected application status message.
+# Verify that the root endpoint responds successfully and renders the
+# human-friendly application status page.
+#
+# Instead of comparing the complete HTML response, verify the important
+# page elements. This keeps the test useful without making it brittle when
+# minor layout or styling changes are made later.
 # ---------------------------------------------------------------------------
-def test_root_returns_running_message(client):
+def test_root_returns_status_page(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.data.decode("utf-8") == "k8s-network-monitor is running!"
+
+    page = response.data.decode("utf-8")
+
+    assert "k8s-network-monitor" in page
+    assert "Running" in page
+    assert "Download Speed" in page
+    assert "Ping Latency" in page
+    assert "/static/k8s-network-monitor-icon.png" in page
+    assert "/health" in page
+    assert "/metrics" in page
 
 
 # ---------------------------------------------------------------------------
