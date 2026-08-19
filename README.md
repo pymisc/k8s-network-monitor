@@ -15,6 +15,38 @@
 
 ---
 
+## Application Preview
+
+The application provides a lightweight status page showing the latest
+network measurements collected by `k8s-network-monitor`.
+
+![k8s-network-monitor application](miscellaneous/k8s-network-monitor-app.png)
+
+The application currently tracks two network metrics:
+
+- **Download Speed** — exposed as `internet_download_mbps`
+- **Ping Latency** — exposed as `internet_ping_latency_ms`
+
+These metrics are exposed through the `/metrics` endpoint in Prometheus
+format and can be collected by the Kubernetes observability stack for
+visualization in Grafana.
+
+```text
+Internet Connection
+        │
+        ▼
+k8s-network-monitor
+        │
+        ├── Application Status Page
+        │
+        └── /metrics
+              │
+              ▼
+          Prometheus
+              │
+              ▼
+            Grafana
+
 ## Overview
 
 **k8s-network-monitor** is a small cloud-native network monitoring application designed to run inside Kubernetes.
