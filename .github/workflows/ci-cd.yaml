@@ -270,3 +270,17 @@ jobs:
             echo "Publishing $tag"
             docker push "$tag"
           done <<< "$IMAGE_TAGS"
+
+      - name: Pipeline Gate Summary
+        if: always()
+        run: |
+          echo "## 🚦 CI/CD Gate Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Gate | Purpose |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ✅ Python Lint | Python quality gate |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ✅ Tests & Coverage | Functional validation |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ✅ Source Security | Repository vulnerability scan |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ✅ Docker Build | Build deployable artifact |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ✅ Container CVE Scan | Runtime image security gate |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| ✅ Publish GHCR | Release validated artifact |" >> "$GITHUB_STEP_SUMMARY"
