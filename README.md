@@ -140,7 +140,8 @@ The application exposes HTTP endpoints on port `8080`.
 
 ### `/`
 
-Basic application endpoint used to confirm that the service is reachable.
+Application status page displaying the current service status along with
+the latest download bandwidth and ping latency measurements.
 
 ### `/health`
 
@@ -299,22 +300,11 @@ internet_ping_latency_ms
 
 ## Prometheus Integration
 
-The application exposes Prometheus-compatible metrics through:
-
-```text
-/metrics
-```
-
-The two application-specific metrics are:
-
-```text
-internet_download_mbps
-internet_ping_latency_ms
-```
+The application exposes Prometheus-compatible metrics through `/metrics`.
 
 A Prometheus-compatible monitoring system can scrape this endpoint and store the measurements as time-series data.
 
-The collected data can then be queried and visualized using Grafana.
+See [Metrics](#metrics) for the application-specific metrics currently exposed.
 
 ---
 
@@ -499,39 +489,11 @@ k8s-network-monitor/
 
 ## Project Goals
 
-This project is intentionally designed as both a useful network-monitoring application and a hands-on platform-engineering project.
+This project is intentionally designed as both a useful network-monitoring
+application and a hands-on platform-engineering project.
 
-It demonstrates the lifecycle of a small cloud-native service:
-
-```text
-Develop
-   │
-   ▼
-Lint
-   │
-   ▼
-Test
-   │
-   ▼
-Security Scan
-   │
-   ▼
-Build Container
-   │
-   ▼
-Scan Container
-   │
-   ▼
-Publish
-   │
-   ▼
-Deploy with Helm
-   │
-   ▼
-Observe with Prometheus + Grafana
-```
-
-The emphasis is not only on writing the application, but also on building a **repeatable, secure, observable delivery process around it**.
+The emphasis is not only on developing the application, but also on building
+a repeatable, secure, observable delivery process around it.
 
 ---
 
